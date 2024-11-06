@@ -9,11 +9,18 @@ class RedisClient {
             port: 6379
         });
 
+        // Handle connection error
         this.client.on('error', (err) => {
             console.error('Redis connection error:', err);
         });
+
+        // Handle connection success
+        this.client.on('connect', () => {
+            console.log('client connected');
+        });
     }
 
+    // Check if Redis client is connected
     isAlive() {
         return this.client.connected;
     }
@@ -46,12 +53,12 @@ class RedisClient {
 
     async del(key) {
         return new Promise((resolve, reject) => {
-            this.client.del(key, (err, reply) => {
+            this.client.del(key, (err) => {
                 if (err) {
                     console.error('Error', err);
                     reject(err);
                 } else{
-                    resolve(reply);
+                    resolve();
                 }
             });
         });
