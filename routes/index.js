@@ -1,17 +1,14 @@
-import { Router } from 'express';
-import AppController from '../controllers/AppController.js';
-import UsersController from '../controllers/UsersController.js';
+const express = require('express');
+const router = express.Router();
+const AppController = require('../controllers/AppController');
+const AuthController = require('../controllers/AuthController');
+const UsersController = require('../controllers/UsersController');
 
-const router = Router();
-
-// Define the GET /status route
 router.get('/status', AppController.getStatus);
-
-// Define the GET /stats route
 router.get('/stats', AppController.getStats);
 
-// Define the POST /users route
-router.post('/users', UsersController.postNew);
+router.get('/connect', AuthController.getConnect);
+router.get('/disconnect', AuthController.getDisconnect);
+router.get('/users/me', UsersController.getMe);
 
-// Export the router
-export default router;
+module.exports = router;
