@@ -1,44 +1,35 @@
-import sha1 from 'sha1';
-import dbClient from '../utils/db.js';
+const redisClient = require('../utils/redis');
+const dbClient = require('../utils/db');
 
 class UsersController {
-  static async postNew(req, res) {
-    const { email, password } = req.body;
+  static async getMe(req, res) {
+    const token = req.header('X-Token');
 
-    // Check if email is missing
-    if (!email) {
-      return res.status(400).json({ error: 'Missing email' });
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Check if password is missing
-    if (!password) {
-      return res.status(400).json({ error: 'Missing password' });
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-
-    // Check if the user already exists in the database
-    const userCollection = dbClient.db.collection('users');
-    const existingUser = await userCollection.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Already exist' });
-    }
-
-    // Hash the password using SHA1
-    const hashedPassword = sha1(password);
-
-    // Insert the new user into the database
-    const newUser = {
-      email,
-      password: hashedPassword,
-    };
 
     try {
-      const result = await userCollection.insertOne(newUser);
-      // Return the new user with only the id and email
-      return res.status(201).json({ id: result.insertedId, email });
-    } catch (error) {
-      return res.status(500).json({ error: 'Error creating user' });
+      // Find the user by their ID in the MongoDB database
+      const user = await dbClient.db.collection('users').findOne({ _id: dbClient.objectID(userId) });
+
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Return the user info (only email and id)
+      return res.status(200).json({ id: user._id, email: user.email });
+    } catch (err) {
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
 }
 
-export default UsersController;
+module.exports = UsersController;
