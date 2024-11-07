@@ -14,7 +14,7 @@ class AuthController {
     }
 
     const email = credentials.name;
-    const password = sha1(credentials.pass); // Hash the password using SHA1
+    const password = sha1(credentials.pass);
 
     try {
       // Search for the user in the MongoDB database
@@ -27,4 +27,35 @@ class AuthController {
       // Generate a random token
       const token = uuidv4();
 
-      // Store the token in Redis with user ID for
+      // Store the token in Redis with user ID for 24 hours
+      const key = `auth_${token}`;
+      await redisClient.set(key, user._id.toString(), 60 * 60 * 24);
+
+      return res.status(200).json({ token });
+    } catch (err) {
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  static async getDisconnect(req, res) {
+    const token = req.header('X-Token');
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Remove the token from Redis
+    await redisClient.del(key);
+
+    return res.status(204).send(); // No content
+  }
+}
+
+module.exports = AuthController;
