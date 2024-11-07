@@ -30,6 +30,37 @@ class UsersController {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
+  static async postNew(req, res) {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ error: 'Missing email' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Missing password' });
+    }
+
+    // Check if the user already exists
+    const userExists = await dbClient.db.collection('users').findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ error: 'Already exist' });
+    }
+
+    // Hash the password and store the new user
+    const hashedPassword = sha1(password);
+    const newUser = await dbClient.db.collection('users').insertOne({
+      email,
+      password: hashedPassword,
+    });
+
+    // Return the new user without the password field
+    return res.status(201).json({
+      id: newUser.insertedId,
+      email,
+    });
+  }
 }
+
 
 module.exports = UsersController;
