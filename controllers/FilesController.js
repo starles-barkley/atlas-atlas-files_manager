@@ -4,6 +4,9 @@ const { ObjectId } = require('mongodb');
 const fs = require('fs');
 const path = require('path');
 const redisClient = require('../utils/redis');
+const Queue = require('bull');
+
+const fileQueue = new Queue('fileQueue');
 
 class FilesController {
     // Endpoint to upload
@@ -76,6 +79,15 @@ class FilesController {
 
         // Insert new file document into the files
         const result = await dbClient.collection('files').insertOne(newFile);
+
+        // check to see if file is image add a job
+        if (type === 'image') {
+            fileQueue.add({
+                fileId: result.insertedId.toString(),
+                userId: user._id.toString()
+            });
+        }
+
         return res.status(201).send(result.ops[0]);
     }
 
